@@ -15,7 +15,14 @@ uint get_color_id(uint x, uint y);
 void RunGraphics(){
     RenderWindow window(VideoMode(WINDOW_LENGTH, WINDOW_HEIGHT), TITLE_STR);
     
-    Vertex vc[] = {Vertex(Vector2f(2, 2), Color::Red)};
+    Vertex pixels[WINDOW_HEIGHT * WINDOW_LENGTH];
+
+    for(int y = 0; y < WINDOW_HEIGHT; y++){
+        for(int x = 0; x < WINDOW_LENGTH; x++){
+
+            pixels[y * WINDOW_HEIGHT + x] = Vertex(Vector2f(x, y), Color::Red);
+        }
+    }
 
     float cur_scale = INIT_SCALE_RATIO;
     float dx        = INIT_DX_RATIO;
@@ -26,17 +33,16 @@ void RunGraphics(){
     
     clock_t init_time = clock();
 
-Color whit(0, 0, 0, 0);
-        window.clear(whit);
-    while (0)
+    while (window.isOpen())
     {
-        
         Event cur_event;
 
         while (window.pollEvent(cur_event))
         {
             if (cur_event.type == Event::Closed)  window.close();
         }
+
+        window.clear();
 
         for(uint y_i = 0; y_i < WINDOW_HEIGHT; y_i++){
 
@@ -54,15 +60,12 @@ Color whit(0, 0, 0, 0);
                     cur_color.g = 255;
                     cur_color.r = 255;
                 }
-
-                vc[0].color = cur_color;
                 
-                window.draw(vc, 1, Points);
+                pixels[y_i * WINDOW_HEIGHT + x_i].color = cur_color;
             }
         }
 
-        Color whit(0, 0, 0, 0);
-        window.clear(whit);
+        window.draw(pixels, WINDOW_LENGTH * WINDOW_HEIGHT, Points);
 
         clock_t end_time = clock();
         framerate_counter++;
