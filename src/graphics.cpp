@@ -11,6 +11,8 @@ using namespace sf;
 // TODO: запилить цвет
 // TODO: понять как работает преобразование координат
 
+
+// Спросить у Ярика
 //----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
 
 void draw_fps(RenderWindow* window, uint framerate);
@@ -30,9 +32,9 @@ void RunGraphics(){
         }
     }
 
-    float cur_scale = INIT_SCALE_RATIO;
-    float dx        = INIT_DX_RATIO;
-    float dy        = INIT_DY_RATIO;
+    float cur_scale = INIT_SCALE_VALUE;
+    float dx        = INIT_DX_VALUE;
+    float dy        = INIT_DY_VALUE;
 
     uint framerate_counter  = 0;
     uint cur_framerate      = 0;
@@ -47,7 +49,9 @@ void RunGraphics(){
         {
             if(cur_event.type == Event::Closed)  window.close();
             if(cur_event.type == Event::KeyPressed){
-
+                    if(Keyboard::isKeyPressed(Keyboard::W)){
+                        X
+                    }
                     switch(cur_event.key.code){
                         case Keyboard::D:{
                             X_0 += dx * coord_move_ratio * cur_scale;
@@ -58,46 +62,22 @@ void RunGraphics(){
                             break;
                         }
                         case Keyboard::W:{
+                            Y_0 -= dy * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::S:{
                             Y_0 += dy * coord_move_ratio * cur_scale;
                             break;
                         }
-                        case Keyboard::D:{
-                            Y_0 += dy * coord_move_ratio * cur_scale;
+                        case Keyboard::Q:{
+                            cur_scale *= SCALE_RATIO;
                             break;
                         }
-                        case Keyboard::D:{
-                            X_0 += dx * coord_move_ratio * cur_scale;
+                        case Keyboard::E:{
+                            cur_scale /= SCALE_RATIO;
                             break;
                         }
-                        case Keyboard::D:{
-                            X_0 += dx * coord_move_ratio * cur_scale;
-                            break;
-                        }
-                        
-                    }
-                    if (cur_event.key.code == Keyboard::D)
-                    {
-                        X_0 += dx * coord_move_ratio * cur_scale;
-                    }
-                    if (cur_event.key.code == Keyboard::A)
-                    {
-                        X_0 -= dx * coord_move_ratio * cur_scale;
-                    }
-                    if (cur_event.key.code == Keyboard::W)
-                    {
-                        Y_0 -= dy * coord_move_ratio * cur_scale;
-                    }
-                    if (cur_event.key.code == Keyboard::S)
-                    {
-                        Y_0 += dy * coord_move_ratio * cur_scale;
-                    }
-                    if (cur_event.key.code == Keyboard::Q)
-                    {
-                        cur_scale *= 1.2;
-                    }
-                    if (cur_event.key.code == Keyboard::E)
-                    {
-                        cur_scale /= 1.2;
+                        default: break;
                     }
             }
         }
