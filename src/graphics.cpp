@@ -6,21 +6,27 @@
 
 using namespace sf;
 
+// TODO: рефактор
+// TODO: прикрутить регистры xmm
+// TODO: запилить цвет
+// TODO: понять как работает преобразование координат
+
 //----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
 
 void draw_fps(RenderWindow* window, uint framerate);
-uint get_color_id(uint x, uint y);
+uint get_color_id(float x, float y);
+void calc_pixels(Vertex* pixels, float dx, float dy, float cur_scale);
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
 void RunGraphics(){
     RenderWindow window(VideoMode(WINDOW_LENGTH, WINDOW_HEIGHT), TITLE_STR);
     
-    Vertex pixels[WINDOW_HEIGHT * WINDOW_LENGTH];
+    Vertex* pixels = (Vertex*)calloc(WINDOW_HEIGHT * WINDOW_LENGTH, sizeof(Vertex));
 
     for(int y = 0; y < WINDOW_HEIGHT; y++){
         for(int x = 0; x < WINDOW_LENGTH; x++){
 
-            pixels[y * WINDOW_HEIGHT + x] = Vertex(Vector2f(x, y), Color::Red);
+            pixels[y * WINDOW_LENGTH + x] = Vertex(Vector2f(x, y), Color::Red);
         }
     }
 
@@ -39,31 +45,66 @@ void RunGraphics(){
 
         while (window.pollEvent(cur_event))
         {
-            if (cur_event.type == Event::Closed)  window.close();
+            if(cur_event.type == Event::Closed)  window.close();
+            if(cur_event.type == Event::KeyPressed){
+
+                    switch(cur_event.key.code){
+                        case Keyboard::D:{
+                            X_0 += dx * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::A:{
+                            X_0 -= dx * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::W:{
+                            Y_0 += dy * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::D:{
+                            Y_0 += dy * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::D:{
+                            X_0 += dx * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        case Keyboard::D:{
+                            X_0 += dx * coord_move_ratio * cur_scale;
+                            break;
+                        }
+                        
+                    }
+                    if (cur_event.key.code == Keyboard::D)
+                    {
+                        X_0 += dx * coord_move_ratio * cur_scale;
+                    }
+                    if (cur_event.key.code == Keyboard::A)
+                    {
+                        X_0 -= dx * coord_move_ratio * cur_scale;
+                    }
+                    if (cur_event.key.code == Keyboard::W)
+                    {
+                        Y_0 -= dy * coord_move_ratio * cur_scale;
+                    }
+                    if (cur_event.key.code == Keyboard::S)
+                    {
+                        Y_0 += dy * coord_move_ratio * cur_scale;
+                    }
+                    if (cur_event.key.code == Keyboard::Q)
+                    {
+                        cur_scale *= 1.2;
+                    }
+                    if (cur_event.key.code == Keyboard::E)
+                    {
+                        cur_scale /= 1.2;
+                    }
+            }
         }
 
         window.clear();
-
-        for(uint y_i = 0; y_i < WINDOW_HEIGHT; y_i++){
-
-            for(uint x_i = 0; x_i < WINDOW_LENGTH; x_i++){
-
-                float x = ((x_i - HWINDOW_LENGTH) * dx + X_0) * cur_scale;
-                float y = ((y_i - HWINDOW_HEIGHT) * dy + Y_0) * cur_scale;
-
-                uint color_id = get_color_id(x_i, y_i);
-
-                Color cur_color(0, 0, 0);
-
-                if(color_id < MAX_COLOR_VALUE){
-                    cur_color.b = 255;
-                    cur_color.g = 255;
-                    cur_color.r = 255;
-                }
-                
-                pixels[y_i * WINDOW_HEIGHT + x_i].color = cur_color;
-            }
-        }
+        
+        calc_pixels(pixels, dx, dy, cur_scale);
 
         window.draw(pixels, WINDOW_LENGTH * WINDOW_HEIGHT, Points);
 
@@ -106,27 +147,56 @@ void draw_fps(RenderWindow* window, uint framerate){
 }
 //--------------------------------------------//
 
-uint get_color_id(uint x, uint y){
-
-    assert(x < WINDOW_LENGTH);
-    assert(y < WINDOW_HEIGHT);
+uint get_color_id(float x, float y){
 
     uint color_value = 0;
 
+    float X = x;
+    float Y = y;
+
     for(; color_value < MAX_COLOR_VALUE; color_value++){
 
-        uint xy = x * y;
-        uint x2 = x * x;
-        uint y2 = y * y;
+        float xy = X * Y;
+        float x2 = X * X;
+        float y2 = Y * Y;
 
-        if(x2 + y2 > COORD_LIMIT){
+        if(x2 + y2 >= (float)COORD_LIMIT){
             break;
         }
 
-        x = x2 - y2 + X_0;
-        y = xy + xy + Y_0;
+        X = x2 - y2 + x;
+        Y = xy + xy + y;
     }
 
     return color_value;
+}
+//--------------------------------------------//
+
+void calc_pixels(Vertex* pixels, float dx, float dy, float cur_scale){
+
+    assert(pixels != NULL);
+
+    for(uint y_i = 0; y_i < WINDOW_HEIGHT; y_i++){
+        // зачем dx, как это работает?, остальное понятно
+        float x = ((    0      - (float)HWINDOW_LENGTH) * dx) * cur_scale + ((float)X_0);
+        float y = (((float)y_i - (float)HWINDOW_HEIGHT) * dy) * cur_scale + ((float)Y_0);
+
+        for(uint x_i = 0; x_i < WINDOW_LENGTH; x_i++, x += dx * cur_scale){
+
+            uint color_id = get_color_id(x, y);
+
+            Color cur_color = Color::Black;
+
+            if(color_id < MAX_COLOR_VALUE){
+                cur_color = Color::White;
+                // printf("- %f, %f\n", (float)x_i - (float)HWINDOW_LENGTH, (float)y_i - (float)HWINDOW_HEIGHT);
+            }
+            else{
+                //printf("+ %f, %f\n", (float)x_i - (float)HWINDOW_LENGTH, (float)y_i - (float)HWINDOW_HEIGHT);
+            }
+            pixels[y_i * WINDOW_LENGTH + x_i].color = cur_color;
+        }
+    }
+        return;
 }
 //--------------------------------------------//
