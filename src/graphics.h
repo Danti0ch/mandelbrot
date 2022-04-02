@@ -4,6 +4,8 @@
 typedef unsigned int uint;
 
 const uint WINDOW_HEIGHT  = 300;
+
+// must be 4 * x
 const uint WINDOW_LENGTH  = 400;
 const uint HWINDOW_HEIGHT = WINDOW_HEIGHT >> 1;
 const uint HWINDOW_LENGTH = WINDOW_LENGTH >> 1;
@@ -26,6 +28,7 @@ const float SCALE_RATIO      = 1.32;
 const uint MAX_COLOR_VALUE = 256;
 const uint COORD_LIMIT     = 100;
 
+const uint REG_SIZE = 8;
 void RunGraphics();
 
 #endif // GRAPHICS_H

@@ -3,10 +3,10 @@
 #include <SFML/Graphics/Vertex.hpp>
 #include <time.h>
 #include <assert.h>
+#include <immintrin.h>
 
 using namespace sf;
 
-// TODO: рефактор
 // TODO: прикрутить регистры xmm
 // TODO: запилить цвет
 // TODO: понять как работает преобразование координат
@@ -16,7 +16,7 @@ using namespace sf;
 //----------------------LOCAL-FUNCTIONS-DECLARATION-----------------------//
 
 void draw_fps(RenderWindow* window, uint framerate);
-uint get_color_id(float x, float y);
+void get_color_id(float* x, float* y, float incr2);
 void calc_pixels(Vertex* pixels, float dx, float dy, float cur_scale);
 //----------------------PUBLIC-FUNCTIONS-DEFINITIONS----------------------//
 
@@ -49,36 +49,24 @@ void RunGraphics(){
         {
             if(cur_event.type == Event::Closed)  window.close();
             if(cur_event.type == Event::KeyPressed){
-                    if(Keyboard::isKeyPressed(Keyboard::W)){
-                        X
-                    }
-                    switch(cur_event.key.code){
-                        case Keyboard::D:{
-                            X_0 += dx * coord_move_ratio * cur_scale;
-                            break;
-                        }
-                        case Keyboard::A:{
-                            X_0 -= dx * coord_move_ratio * cur_scale;
-                            break;
-                        }
-                        case Keyboard::W:{
-                            Y_0 -= dy * coord_move_ratio * cur_scale;
-                            break;
-                        }
-                        case Keyboard::S:{
-                            Y_0 += dy * coord_move_ratio * cur_scale;
-                            break;
-                        }
-                        case Keyboard::Q:{
-                            cur_scale *= SCALE_RATIO;
-                            break;
-                        }
-                        case Keyboard::E:{
-                            cur_scale /= SCALE_RATIO;
-                            break;
-                        }
-                        default: break;
-                    }
+                if(Keyboard::isKeyPressed(Keyboard::D)){
+                    X_0 += dx * coord_move_ratio * cur_scale;
+                }
+                if(Keyboard::isKeyPressed(Keyboard::A)){
+                    X_0 -= dx * coord_move_ratio * cur_scale;
+                }
+                if(Keyboard::isKeyPressed(Keyboard::W)){
+                    Y_0 -= dy * coord_move_ratio * cur_scale;
+                }
+                if(Keyboard::isKeyPressed(Keyboard::S)){
+                    Y_0 += dy * coord_move_ratio * cur_scale;
+                }
+                if(Keyboard::isKeyPressed(Keyboard::Q)){
+                    cur_scale *= SCALE_RATIO;
+                }
+                if(Keyboard::isKeyPressed(Keyboard::E)){
+                    cur_scale /= SCALE_RATIO;
+                }
             }
         }
 
@@ -127,28 +115,45 @@ void draw_fps(RenderWindow* window, uint framerate){
 }
 //--------------------------------------------//
 
-uint get_color_id(float x, float y){
+void get_color_id(float* x, float* y, float incr2){
 
-    uint color_value = 0;
+    __m256 _x = _mm256_add_ps(
+                _mm256_set_ps(0, x_incr2, x_incr2 * 2, x_incr2 * 3, x_incr2 * 4, x_incr2 * 5, x_incr2 * 6, x_incr2 * 7),
+                _mm256_broadcast_ss(&x));
 
-    float X = x;
-    float Y = y;
+    __m256 _y = _mm256_broadcast_ss(&y);
+          
+    color_value = _mm256_set1_epi8(0);
 
-    for(; color_value < MAX_COLOR_VALUE; color_value++){
+    __m256 X = x;
+    __m256 Y = y;
 
-        float xy = X * Y;
-        float x2 = X * X;
-        float y2 = Y * Y;
+    __m256i msk = _mm256_set1_epi8(0);
 
-        if(x2 + y2 >= (float)COORD_LIMIT){
-            break;
-        }
+    __m256 coord_limit = _mm256_set1_ps((float)COORD_LIMIT);
 
-        X = x2 - y2 + x;
-        Y = xy + xy + y;
+    uint cur_step = 0;
+    int ed[4] = {1, 1, 1, 1};
+
+    for(; cur_step < MAX_COLOR_VALUE; cur_step++){
+
+        __m256 xy = _mm256_mul_ps(X, Y);
+        __m256 x2 = _mm256_mul_ps(X, X);
+        __m256 y2 = _mm256_mul_ps(Y, Y);
+
+        __m256i cmp_res = _mm256_castps_si256(_mm256_cmp_ps(_mm256_add_ps(x2, y2), coord_limit, _CMP_LE_OS));
+
+        int res = _mm256_movemask_epi8(cmp_res);
+
+        if(res == 0) break;
+
+        color_value = _mm256_add_epi64(_mm256_maskload_epi32(ed, cmp_res), color_value);
+
+        X = _mm256_add_ps(_mm256_sub_ps(x2, y2), x);
+        Y = _mm256_add_ps(_mm256_add_ps(xy, xy), y);
     }
 
-    return color_value;
+    return;
 }
 //--------------------------------------------//
 
@@ -156,24 +161,26 @@ void calc_pixels(Vertex* pixels, float dx, float dy, float cur_scale){
 
     assert(pixels != NULL);
 
+    __m256i color_id = _mm256_set1_epi8(0);
+
+    float x_incr    = REG_SIZE * dx * cur_scale;
+    float x_incr2   = dx * cur_scale;               // rename
+
     for(uint y_i = 0; y_i < WINDOW_HEIGHT; y_i++){
         // зачем dx, как это работает?, остальное понятно
+
+
         float x = ((    0      - (float)HWINDOW_LENGTH) * dx) * cur_scale + ((float)X_0);
         float y = (((float)y_i - (float)HWINDOW_HEIGHT) * dy) * cur_scale + ((float)Y_0);
 
-        for(uint x_i = 0; x_i < WINDOW_LENGTH; x_i++, x += dx * cur_scale){
-
-            uint color_id = get_color_id(x, y);
+        for(uint x_i = 0; x_i < WINDOW_LENGTH; x_i+= REG_SIZE, x += x_incr){
+            
+            
+            get_color_id(&x, &y, x_incr2);
 
             Color cur_color = Color::Black;
 
-            if(color_id < MAX_COLOR_VALUE){
-                cur_color = Color::White;
-                // printf("- %f, %f\n", (float)x_i - (float)HWINDOW_LENGTH, (float)y_i - (float)HWINDOW_HEIGHT);
-            }
-            else{
-                //printf("+ %f, %f\n", (float)x_i - (float)HWINDOW_LENGTH, (float)y_i - (float)HWINDOW_HEIGHT);
-            }
+            
             pixels[y_i * WINDOW_LENGTH + x_i].color = cur_color;
         }
     }
